@@ -23,6 +23,7 @@ static async Task<IHost> StartSiloAsync()
         .UseOrleans(silo =>
         {
             silo.UseLocalhostClustering()
+                .AddMemoryGrainStorage("robotStateStore")
                 .ConfigureLogging(logging =>
                 {
                     logging.AddConsole();

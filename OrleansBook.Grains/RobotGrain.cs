@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
+using Orleans.Runtime;
 using OrleansBook.GrainInterfaces;
+using OrleansBook.Grains.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,37 +13,41 @@ namespace OrleansBook.Grains
     public class RobotGrain : Grain, IRobotGrain
     {
         private readonly ILogger<RobotGrain> _logger;
+        private readonly IPersistentState<RobotState> _state;
 
-        public RobotGrain(ILogger<RobotGrain> logger)
+        public RobotGrain(
+            ILogger<RobotGrain> logger,
+            [PersistentState("robotState", "robotStateStore")] IPersistentState<RobotState> state)
         {
             _logger = logger;
+            _state = state;
         }
 
-        private Queue<string> instructions = new Queue<string>();
-        public Task AddInstruction(string instruction)
+        public async Task AddInstruction(string instruction)
         {
             var key = this.GetPrimaryKeyString();
             _logger.LogWarning("{Key} adding '{Instruction}'", key, instruction);
 
-            this.instructions.Enqueue(instruction);
-            return Task.CompletedTask;
+            _state.State.Instructions.Enqueue(instruction);
+            await _state.WriteStateAsync();
         }
         public Task<int> GetInstructionCount()
         {
-            return Task.FromResult(this.instructions.Count);
+            return Task.FromResult(_state.State.Instructions.Count);
         }
-        public Task<string> GetNextInstruction()
+        public async Task<string> GetNextInstruction()
         {
-            if (this.instructions.Count == 0)
+            if (_state.State.Instructions.Count == 0)
             {
-                return Task.FromResult<string>(null);
+                return null;
             }
-            var instruction = this.instructions.Dequeue();
+            var instruction = _state.State.Instructions.Dequeue();
 
             var key = this.GetPrimaryKeyString();
             _logger.LogWarning("{Key} executing '{Instruction}'", key, instruction);
 
-            return Task.FromResult(instruction);
+            await _state.WriteStateAsync();
+            return instruction;
         }
     }
 }
