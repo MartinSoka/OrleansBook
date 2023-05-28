@@ -17,7 +17,7 @@ namespace OrleansBook.Grains
 
         public RobotGrain(
             ILogger<RobotGrain> logger,
-            [PersistentState("robotState", "robotStateStore")] IPersistentState<RobotState> state)
+            [PersistentState("robotState", "robots")] IPersistentState<RobotState> state)
         {
             _logger = logger;
             _state = state;
